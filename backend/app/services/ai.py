@@ -16,6 +16,7 @@ async def stream_chat(messages: list[dict]) -> AsyncGenerator[str]:
         "stream": True,
         "temperature": 0.85,
         "top_p": 0.9,
+        "max_tokens": 4096,
     }
 
     async with httpx.AsyncClient(timeout=120) as client:
