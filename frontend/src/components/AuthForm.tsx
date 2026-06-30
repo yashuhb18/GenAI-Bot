@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { setToken } from "@/lib/auth";
-import { Bot, Loader2, Mail, Phone } from "lucide-react";
+import { Bot, Loader2, Mail, Phone, ChevronDown } from "lucide-react";
 
 type Tab = "email" | "phone" | "google";
 
@@ -33,11 +33,20 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const COUNTRIES = [
+  { code: "+91", label: "IN", name: "India" },
+  { code: "+1", label: "US", name: "United States" },
+  { code: "+44", label: "UK", name: "United Kingdom" },
+  { code: "+61", label: "AU", name: "Australia" },
+  { code: "+971", label: "AE", name: "UAE" },
+  { code: "+65", label: "SG", name: "Singapore" },
+];
+
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 10);
   if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
 }
 
 export function AuthForm({ mode }: Props) {
@@ -50,10 +59,12 @@ export function AuthForm({ mode }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  const [countryCode, setCountryCode] = useState("+91");
   const [phone, setPhone] = useState("");
   const [phoneStep, setPhoneStep] = useState<"input" | "verify">("input");
   const [phoneCode, setPhoneCode] = useState("");
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
 
   const googleScriptRef = useRef<HTMLScriptElement | null>(null);
 
@@ -93,7 +104,7 @@ export function AuthForm({ mode }: Props) {
     setPhoneLoading(true);
     try {
       const raw = phone.replace(/\D/g, "");
-      const full = `+1${raw}`;
+      const full = `${countryCode}${raw}`;
       await api.phoneSendCode(full);
       setPhoneStep("verify");
     } catch (err: unknown) {
@@ -108,7 +119,7 @@ export function AuthForm({ mode }: Props) {
     setPhoneLoading(true);
     try {
       const raw = phone.replace(/\D/g, "");
-      const full = `+1${raw}`;
+      const full = `${countryCode}${raw}`;
       const { access_token } = await api.phoneVerify(full, phoneCode);
       onSuccess(access_token);
     } catch (err: unknown) {
@@ -122,7 +133,13 @@ export function AuthForm({ mode }: Props) {
     setError("");
     setLoading(true);
 
-    const clientId = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
+    if (!clientId || clientId === "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
+      setError("Google login is not configured yet. Please use email or phone login.");
+      setLoading(false);
+      return;
+    }
 
     if (window.google?.accounts?.id) {
       window.google.accounts.id.initialize({
@@ -191,6 +208,8 @@ export function AuthForm({ mode }: Props) {
   const inputClass =
     "w-full rounded-xl border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-colors";
 
+  const selectedCountry = COUNTRIES.find((c) => c.code === countryCode) || COUNTRIES[0];
+
   return (
     <div className="w-full max-w-sm space-y-6">
       <div className="flex flex-col items-center gap-3">
@@ -198,7 +217,7 @@ export function AuthForm({ mode }: Props) {
           <Bot className="w-7 h-7 text-white" />
         </div>
         <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-          {mode === "login" ? "Welcome to NEXUS" : "Create your account"}
+          {mode === "login" ? "Welcome to AvenZa-AI" : "Create your account"}
         </h1>
         <p className="text-sm text-[var(--text-secondary)]">
           {mode === "login"
@@ -286,17 +305,41 @@ export function AuthForm({ mode }: Props) {
           {phoneStep === "input" ? (
             <>
               <div className="flex gap-2">
-                <div className="w-20 shrink-0">
-                  <input
-                    type="text"
-                    value="+1"
-                    readOnly
-                    className={`${inputClass} text-center`}
-                  />
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowCountryPicker(!showCountryPicker)}
+                    className="flex items-center gap-1 h-full rounded-xl border border-[var(--border)] bg-transparent px-3 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                  >
+                    <span className="text-xs font-medium">{selectedCountry.label}</span>
+                    <span className="text-xs text-[var(--text-secondary)]">{countryCode}</span>
+                    <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" />
+                  </button>
+                  {showCountryPicker && (
+                    <div className="absolute top-full left-0 mt-1 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl shadow-lg z-50 py-1 min-w-[160px]">
+                      {COUNTRIES.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => {
+                            setCountryCode(c.code);
+                            setShowCountryPicker(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-hover)] transition-colors ${
+                            countryCode === c.code ? "text-[var(--accent)] font-medium" : "text-[var(--text-primary)]"
+                          }`}
+                        >
+                          <span className="text-xs font-medium w-6">{c.label}</span>
+                          <span>{c.code}</span>
+                          <span className="text-xs text-[var(--text-tertiary)]">{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <input
                   type="tel"
-                  placeholder="(555) 123-4567"
+                  placeholder="Enter phone number"
                   required
                   value={phone}
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
@@ -306,7 +349,7 @@ export function AuthForm({ mode }: Props) {
               <button
                 type="button"
                 onClick={handlePhoneSend}
-                disabled={phoneLoading || phone.replace(/\D/g, "").length < 10}
+                disabled={phoneLoading || phone.replace(/\D/g, "").length < 6}
                 className="w-full rounded-xl bg-[var(--accent)] py-3 text-white font-medium text-sm hover:bg-[var(--accent-hover)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
               >
                 {phoneLoading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -316,7 +359,7 @@ export function AuthForm({ mode }: Props) {
           ) : (
             <>
               <p className="text-xs text-[var(--text-secondary)] text-center">
-                Code sent to +1 {phone}
+                Code sent to {countryCode} {phone}
               </p>
               <input
                 type="text"

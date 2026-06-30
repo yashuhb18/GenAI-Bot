@@ -171,3 +171,44 @@ body {
   border-top: 1px solid var(--border);
   margin: 1em 0;
 }
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-area-inset {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 640px) {
+  .prose-chat {
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  .prose-chat pre {
+    font-size: 0.75rem;
+    margin: 0.5em -0.75em;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  .prose-chat code {
+    font-size: 0.8125rem;
+  }
+  .prose-chat table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-touch-callout: none;
+}
+
+input, textarea, button {
+  font-size: 16px;
+}

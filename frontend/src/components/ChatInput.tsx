@@ -58,7 +58,7 @@ export function ChatInput({ onSend, disabled }: Props) {
   };
 
   return (
-    <div className="px-4 pb-4 pt-2">
+    <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-2 safe-area-inset">
       <div className="max-w-3xl mx-auto">
         <div className="relative flex items-end rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)] shadow-[var(--shadow-md)] focus-within:border-[var(--accent)] focus-within:shadow-[var(--shadow-lg)] transition-all">
           <textarea
@@ -73,22 +73,21 @@ export function ChatInput({ onSend, disabled }: Props) {
             }}
             placeholder={
               disabled
-                ? "Select or start a new chat..."
+                ? "Waiting for response..."
                 : isListening
                   ? "Listening..."
                   : "Message..."
             }
             rows={1}
             disabled={disabled}
-            className="flex-1 resize-none bg-transparent px-4 py-3.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none disabled:opacity-40 min-h-[48px] max-h-[200px]"
+            className="flex-1 resize-none bg-transparent px-3.5 sm:px-4 py-3 sm:py-3.5 text-[15px] sm:text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none disabled:opacity-40 min-h-[48px] max-h-[200px]"
           />
 
-          <div className="flex items-center gap-1.5 pr-3 pb-3">
-            {/* Voice Input Button */}
+          <div className="flex items-center gap-1 sm:gap-1.5 pr-2.5 sm:pr-3 pb-2.5 sm:pb-3">
             <button
               onClick={handleVoiceToggle}
               disabled={disabled}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+              className={`w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all ${
                 isListening
                   ? "bg-red-500 text-white animate-pulse hover:bg-red-600"
                   : "text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
@@ -102,11 +101,10 @@ export function ChatInput({ onSend, disabled }: Props) {
               )}
             </button>
 
-            {/* Send Button */}
             <button
               onClick={handleSubmit}
               disabled={disabled || !input.trim()}
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
               title="Send message"
             >
               <Send className="w-4 h-4" />
@@ -114,7 +112,6 @@ export function ChatInput({ onSend, disabled }: Props) {
           </div>
         </div>
 
-        {/* Voice Status / Error */}
         {isListening && (
           <div className="flex items-center justify-center gap-2 mt-2 text-xs text-[var(--accent)]">
             <span className="flex gap-0.5">
@@ -149,7 +146,7 @@ export function ChatInput({ onSend, disabled }: Props) {
             </span>
             <span>Listening... speak now</span>
             <span className="text-[var(--text-tertiary)]">|</span>
-            <span className="text-[var(--text-tertiary)]">
+            <span className="text-[var(--text-tertiary)] hidden sm:inline">
               Press mic to stop
             </span>
           </div>

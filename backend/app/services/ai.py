@@ -27,7 +27,7 @@ async def stream_chat(messages: list[dict]) -> AsyncGenerator[str]:
                 "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
                 "HTTP-Referer": "http://localhost:3000",
-                "X-Title": "NEXUS AI Chat",
+                "X-Title": "AvenZa-AI",
             },
         ) as response:
             if response.status_code != 200:

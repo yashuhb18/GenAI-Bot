@@ -5,6 +5,7 @@ import {
   Trash2,
   MessageSquare,
   LayoutDashboard,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -35,9 +36,11 @@ export function ConversationSidebar({
     <>
       <div
         className="fixed inset-0 bg-black/50 z-40 md:hidden"
-        onClick={onClose}
+        onClick={() => onClose?.()}
+        role="button"
+        tabIndex={-1}
       />
-      <aside className="fixed inset-y-0 left-0 z-50 w-[280px] bg-[var(--bg-secondary)] flex flex-col h-full border-r border-[var(--border)] md:relative md:z-auto md:w-[var(--sidebar-width)]">
+      <aside className="fixed inset-y-0 left-0 z-50 w-[280px] bg-[var(--bg-secondary)] flex flex-col h-full border-r border-[var(--border)] md:relative md:z-auto md:w-[var(--sidebar-width)] animate-slide-in">
         <div className="p-3 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <Link
@@ -52,15 +55,19 @@ export function ConversationSidebar({
               Dashboard
             </Link>
             <button
-              onClick={onClose}
-              className="ml-2 p-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] md:hidden"
+              onClick={() => onClose?.()}
+              className="ml-2 p-2.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] md:hidden active:scale-95 transition-all"
+              aria-label="Close sidebar"
             >
-              ✕
+              <X className="w-5 h-5" />
             </button>
           </div>
           <button
-            onClick={onNew}
-            className="w-full flex items-center gap-2.5 rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+            onClick={() => {
+              onNew();
+              onClose?.();
+            }}
+            className="w-full flex items-center gap-2.5 rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-hover)] active:scale-[0.98] transition-all"
           >
             <MessageSquarePlus className="w-4 h-4" />
             New chat
@@ -97,7 +104,7 @@ export function ConversationSidebar({
                     e.stopPropagation();
                     onDelete(conv.id);
                   }}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--bg-tertiary)] hover:text-red-500 transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-[var(--bg-tertiary)] hover:text-red-500 transition-all"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -108,7 +115,7 @@ export function ConversationSidebar({
 
         <div className="p-3 border-t border-[var(--border)]">
           <div className="text-xs text-[var(--text-tertiary)] text-center">
-            Powered by OpenRouter
+            Powered by AvenZa-AI
           </div>
         </div>
       </aside>

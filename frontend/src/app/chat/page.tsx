@@ -132,6 +132,23 @@ export default function ChatPage() {
     }
   };
 
+  const handleSend = async (content: string) => {
+    if (!activeConvId) {
+      try {
+        const conv = await api.createConversation();
+        setConversations((prev) => [conv, ...prev]);
+        setActiveConvId(conv.id);
+        connect(conv.id);
+        setTimeout(() => sendMessage(content), 300);
+      } catch {
+        removeToken();
+        router.push("/login");
+      }
+    } else {
+      sendMessage(content);
+    }
+  };
+
   if (!token) return null;
 
   return (
@@ -160,7 +177,7 @@ export default function ChatPage() {
       )}
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border)]">
+        <header className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 border-b border-[var(--border)]">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors md:hidden"
@@ -180,7 +197,7 @@ export default function ChatPage() {
 
           <Link
             href="/dashboard"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <LayoutDashboard className="w-4 h-4" />
             <span className="hidden sm:inline">Dashboard</span>
@@ -192,7 +209,7 @@ export default function ChatPage() {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Logout</span>
@@ -208,19 +225,19 @@ export default function ChatPage() {
               <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text-primary)] mb-2 text-center">
                 How can I help you today?
               </h2>
-              <p className="text-sm text-[var(--text-secondary)] mb-6 sm:mb-8 text-center">
+              <p className="text-sm text-[var(--text-secondary)] mb-6 sm:mb-8 text-center max-w-xs">
                 Ask me anything, or pick a suggestion below.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
+              <div className="grid grid-cols-1 gap-3 w-full max-w-sm sm:max-w-lg sm:grid-cols-2">
                 {SUGGESTIONS.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => handleSuggestion(s.prompt)}
-                    className="flex items-start gap-3 p-3 sm:p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-strong)] transition-all text-left group"
+                    className="flex items-start gap-3 p-3.5 sm:p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-strong)] active:scale-[0.98] transition-all text-left group min-h-[56px]"
                   >
                     <s.icon className="w-5 h-5 text-[var(--accent)] shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                    <span className="text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
+                    <span className="text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors leading-snug">
                       {s.label}
                     </span>
                   </button>
@@ -228,7 +245,7 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto py-4 px-2 sm:px-4">
+            <div className="max-w-3xl mx-auto py-3 sm:py-4 px-3 sm:px-4">
               {messages.map((msg) => (
                 <ChatMessage key={msg.id} role={msg.role} content={msg.content} />
               ))}
@@ -256,8 +273,8 @@ export default function ChatPage() {
         </div>
 
         <ChatInput
-          onSend={sendMessage}
-          disabled={isStreaming || !activeConvId}
+          onSend={handleSend}
+          disabled={isStreaming}
         />
       </main>
     </div>
