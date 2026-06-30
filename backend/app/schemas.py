@@ -21,11 +21,13 @@ class TokenResponse(BaseModel):
 
 class ConversationCreate(BaseModel):
     title: str = "New Chat"
+    mode: str = "general"
 
 
 class ConversationOut(BaseModel):
     id: str
     title: str
+    mode: str
     created_at: datetime
     updated_at: datetime
 
@@ -68,3 +70,14 @@ class DashboardOut(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
+
+
+class CodeRunRequest(BaseModel):
+    code: str
+    language: str
+
+
+class CodeRunResponse(BaseModel):
+    success: bool
+    output: str
+    error: str

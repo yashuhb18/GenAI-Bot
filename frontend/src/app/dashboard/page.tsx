@@ -16,6 +16,7 @@ import {
   User,
   ArrowRight,
   Plus,
+  BookOpen,
 } from "lucide-react";
 
 interface DashboardUser {
@@ -293,6 +294,13 @@ export default function DashboardPage() {
               >
                 View All Chats
                 <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => router.push("/study")}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--border)] text-[var(--text-primary)] font-medium hover:bg-[var(--bg-hover)] active:scale-[0.98] transition-all"
+              >
+                <BookOpen className="w-4 h-4" />
+                Study Planner
               </button>
             </div>
 

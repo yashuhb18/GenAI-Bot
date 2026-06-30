@@ -2,14 +2,22 @@
 import { useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
+import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
-import { Bot, User, Copy, Check } from "lucide-react";
+import { Bot, User, Copy, Check, Bookmark, BookmarkCheck } from "lucide-react";
+import "katex/dist/katex.min.css";
+import { CodeRunner } from "./CodeRunner";
 
 interface Props {
   role: "user" | "assistant" | "system";
   content: string;
   isStreaming?: boolean;
+  messageId?: string;
+  conversationId?: string;
+  isBookmarked?: boolean;
+  onBookmark?: (messageId: string) => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -47,7 +55,7 @@ function CodeBlock({ className, children, ...props }: React.HTMLAttributes<HTMLP
         </div>
       )}
       {!language && (
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <CopyButton text={code} />
         </div>
       )}
@@ -56,15 +64,16 @@ function CodeBlock({ className, children, ...props }: React.HTMLAttributes<HTMLP
           {children}
         </code>
       </pre>
+      {language && <CodeRunner code={code} language={language} />}
     </div>
   );
 }
 
-export function ChatMessage({ role, content, isStreaming }: Props) {
+export function ChatMessage({ role, content, isStreaming, messageId, conversationId, isBookmarked, onBookmark }: Props) {
   const isUser = role === "user";
 
   return (
-    <div className={`animate-fade-in flex gap-2.5 sm:gap-4 px-3 sm:px-4 py-4 sm:py-5 ${isUser ? "justify-end" : ""}`}>
+    <div className={`group animate-fade-in flex gap-2.5 sm:gap-4 px-3 sm:px-4 py-4 sm:py-5 ${isUser ? "justify-end" : ""}`}>
       {!isUser && (
         <div className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--accent)] flex items-center justify-center">
           <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
@@ -73,7 +82,22 @@ export function ChatMessage({ role, content, isStreaming }: Props) {
 
       <div className={`flex flex-col gap-1 ${isUser ? "max-w-[85%] sm:max-w-[75%]" : "max-w-[88%] sm:max-w-[80%] min-w-0"}`}>
         {!isUser && (
-          <span className="text-xs font-semibold text-[var(--text-secondary)]">Assistant</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Assistant</span>
+            {messageId && onBookmark && (
+              <button
+                onClick={() => onBookmark(messageId)}
+                className="opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity"
+                title={isBookmarked ? "Remove bookmark" : "Save answer"}
+              >
+                {isBookmarked ? (
+                  <BookmarkCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
+                ) : (
+                  <Bookmark className="w-3.5 h-3.5 text-[var(--text-tertiary)] hover:text-[var(--accent)]" />
+                )}
+              </button>
+            )}
+          </div>
         )}
         <div
           className={`rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 ${
@@ -87,8 +111,8 @@ export function ChatMessage({ role, content, isStreaming }: Props) {
           ) : (
             <div className="prose-chat">
               <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight, rehypeRaw]}
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeHighlight, rehypeKatex, rehypeRaw]}
                 components={{
                   pre: CodeBlock,
                 }}

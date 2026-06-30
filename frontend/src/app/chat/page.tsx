@@ -4,11 +4,15 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getToken, removeToken } from "@/lib/auth";
 import { useChat } from "@/hooks/useChat";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import type { Conversation } from "@/types";
+import { ModeSelector } from "@/components/ModeSelector";
+import { QuickActions } from "@/components/QuickActions";
+import { QuizMode } from "@/components/QuizMode";
+import type { Conversation, Bookmark } from "@/types";
 import Link from "next/link";
 import {
   PanelLeftClose,
@@ -21,6 +25,9 @@ import {
   Globe,
   LayoutDashboard,
   Menu,
+  Download,
+  GraduationCap,
+  Share2,
 } from "lucide-react";
 
 const SUGGESTIONS = [
@@ -36,6 +43,9 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentMode, setCurrentMode] = useState("general");
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [quizOpen, setQuizOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,6 +62,7 @@ export default function ChatPage() {
         removeToken();
         router.push("/login");
       });
+    api.getBookmarks().then(setBookmarks).catch(() => {});
   }, [router]);
 
   const refreshConversations = async () => {
@@ -73,15 +84,26 @@ export default function ChatPage() {
     disconnect,
   } = useChat(token || "", refreshConversations);
 
+  useKeyboardShortcuts({
+    onNewChat: () => handleNewChat(),
+    onToggleSidebar: () => setSidebarOpen((o) => !o),
+    onFocusInput: () => {
+      const input = document.querySelector("textarea");
+      input?.focus();
+    },
+    onEscape: () => setSidebarOpen(false),
+  });
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
 
-  const handleNewChat = async () => {
+  const handleNewChat = async (mode?: string) => {
     try {
-      const conv = await api.createConversation();
+      const conv = await api.createConversation(undefined, mode || currentMode);
       setConversations((prev) => [conv, ...prev]);
       setActiveConvId(conv.id);
+      setCurrentMode(conv.mode);
       connect(conv.id);
       setSidebarOpen(false);
     } catch {
@@ -93,6 +115,8 @@ export default function ChatPage() {
   const handleSelectConv = async (id: string) => {
     disconnect();
     setActiveConvId(id);
+    const conv = conversations.find((c) => c.id === id);
+    if (conv) setCurrentMode(conv.mode || "general");
     connect(id);
     setSidebarOpen(false);
     try {
@@ -116,6 +140,26 @@ export default function ChatPage() {
     }
   };
 
+  const handleExport = async () => {
+    if (!activeConvId) return;
+    try {
+      await api.exportConversation(activeConvId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleShare = async () => {
+    if (!activeConvId) return;
+    try {
+      const { share_url } = await api.shareConversation(activeConvId);
+      const fullUrl = `${window.location.origin}${share_url}`;
+      await navigator.clipboard.writeText(fullUrl);
+    } catch {
+      // ignore
+    }
+  };
+
   const handleLogout = () => {
     removeToken();
     disconnect();
@@ -125,7 +169,7 @@ export default function ChatPage() {
   const handleSuggestion = async (prompt: string) => {
     if (!activeConvId) {
       try {
-        const conv = await api.createConversation();
+        const conv = await api.createConversation(undefined, currentMode);
         setConversations((prev) => [conv, ...prev]);
         setActiveConvId(conv.id);
         await connect(conv.id);
@@ -139,20 +183,58 @@ export default function ChatPage() {
     }
   };
 
-  const handleSend = async (content: string) => {
+  const handleModeChange = async (mode: string) => {
+    setCurrentMode(mode);
+    if (activeConvId) {
+      try {
+        await api.updateConversationMode(activeConvId, mode);
+        setConversations((prev) =>
+          prev.map((c) => (c.id === activeConvId ? { ...c, mode } : c))
+        );
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const handleBookmark = async (messageId: string) => {
+    if (!activeConvId) return;
+    const existing = bookmarks.find((b) => b.message_id === messageId);
+    if (existing) {
+      try {
+        await api.removeBookmark(existing.id);
+        setBookmarks((prev) => prev.filter((b) => b.id !== existing.id));
+      } catch {
+        // ignore
+      }
+    } else {
+      try {
+        const bm = await api.addBookmark(activeConvId, messageId);
+        setBookmarks((prev) => [bm, ...prev]);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const handleSend = async (content: string, images?: string[]) => {
+    const message = images && images.length > 0
+      ? `${content}\n\n[Images: ${images.join(", ")}]`
+      : content;
+
     if (!activeConvId) {
       try {
-        const conv = await api.createConversation();
+        const conv = await api.createConversation(undefined, currentMode);
         setConversations((prev) => [conv, ...prev]);
         setActiveConvId(conv.id);
         await connect(conv.id);
-        sendMessage(content);
+        sendMessage(message);
       } catch {
         removeToken();
         router.push("/login");
       }
     } else {
-      sendMessage(content);
+      sendMessage(message);
     }
   };
 
@@ -214,6 +296,40 @@ export default function ChatPage() {
 
           <span className="text-sm font-semibold text-[var(--text-primary)] sm:hidden">AvenZa-AI</span>
 
+          {activeConvId && (
+            <ModeSelector currentMode={currentMode} onModeChange={handleModeChange} />
+          )}
+
+          {activeConvId && (
+            <button
+              onClick={handleExport}
+              className="p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+              title="Export conversation"
+            >
+              <Download className="w-4 h-4 text-[var(--text-secondary)]" />
+            </button>
+          )}
+
+          {activeConvId && (
+            <button
+              onClick={handleShare}
+              className="p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+              title="Share conversation"
+            >
+              <Share2 className="w-4 h-4 text-[var(--text-secondary)]" />
+            </button>
+          )}
+
+          {activeConvId && (
+            <button
+              onClick={() => setQuizOpen(true)}
+              className="p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+              title="Start quiz"
+            >
+              <GraduationCap className="w-4 h-4 text-[var(--text-secondary)]" />
+            </button>
+          )}
+
           <ThemeToggle />
 
           <button
@@ -256,7 +372,15 @@ export default function ChatPage() {
           ) : (
             <div className="max-w-3xl mx-auto py-3 sm:py-4 px-3 sm:px-4">
               {messages.map((msg) => (
-                <ChatMessage key={msg.id} role={msg.role} content={msg.content} />
+                <ChatMessage
+                  key={msg.id}
+                  role={msg.role}
+                  content={msg.content}
+                  messageId={msg.id}
+                  conversationId={activeConvId || undefined}
+                  isBookmarked={bookmarks.some((b) => b.message_id === msg.id)}
+                  onBookmark={msg.role === "assistant" ? handleBookmark : undefined}
+                />
               ))}
               {isStreaming && streamingContent && (
                 <ChatMessage role="assistant" content={streamingContent} isStreaming />
@@ -276,6 +400,11 @@ export default function ChatPage() {
                   </div>
                 </div>
               )}
+              {!isStreaming && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (
+                <div className="mt-2 mb-4">
+                  <QuickActions onAction={handleSend} disabled={isStreaming} />
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -286,6 +415,13 @@ export default function ChatPage() {
           disabled={isStreaming}
         />
       </main>
+
+      {quizOpen && activeConvId && (
+        <QuizMode
+          conversationId={activeConvId}
+          onClose={() => setQuizOpen(false)}
+        />
+      )}
     </div>
   );
 }

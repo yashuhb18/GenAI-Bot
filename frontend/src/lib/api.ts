@@ -1,4 +1,4 @@
-import type { Conversation, Message } from "@/types";
+import type { Bookmark, Conversation, Message, QuizQuestion, StudyPlan } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -55,10 +55,19 @@ export const api = {
 
   getConversations: () => request<Conversation[]>("/api/conversations"),
 
-  createConversation: (title?: string) =>
+  searchConversations: (q: string) =>
+    request<Conversation[]>(`/api/conversations/search?q=${encodeURIComponent(q)}`),
+
+  createConversation: (title?: string, mode?: string) =>
     request<Conversation>("/api/conversations", {
       method: "POST",
-      body: JSON.stringify({ title: title || "New Chat" }),
+      body: JSON.stringify({ title: title || "New Chat", mode: mode || "general" }),
+    }),
+
+  updateConversationMode: (convId: string, mode: string) =>
+    request<Conversation>(`/api/conversations/${convId}/mode`, {
+      method: "PATCH",
+      body: JSON.stringify({ mode }),
     }),
 
   getMessages: (convId: string) =>
@@ -67,9 +76,77 @@ export const api = {
   deleteConversation: (convId: string) =>
     request<void>(`/api/conversations/${convId}`, { method: "DELETE" }),
 
+  shareConversation: (convId: string) =>
+    request<{ share_id: string; share_url: string }>(`/api/conversations/${convId}/share`, {
+      method: "POST",
+    }),
+
+  getSharedConversation: (shareId: string) =>
+    request<{ title: string; mode: string; messages: Array<{ role: string; content: string }> }>(
+      `/api/shared/${shareId}`
+    ),
+
+  exportConversation: async (convId: string, format: string = "markdown") => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const res = await fetch(
+      `${API_BASE}/api/conversations/${convId}/export?fmt=${format}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+    );
+    if (!res.ok) throw new Error("Export failed");
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const filenameMatch = disposition.match(/filename="?(.+?)"?$/);
+    const filename = filenameMatch ? filenameMatch[1] : `conversation.${format === "markdown" ? "md" : format}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   speechToText: (audio: string, mimeType: string) =>
     request<{ text: string }>("/api/speech-to-text", {
       method: "POST",
       body: JSON.stringify({ audio, mime_type: mimeType }),
     }),
+
+  getBookmarks: () => request<Bookmark[]>("/api/bookmarks"),
+
+  addBookmark: (conversationId: string, messageId: string, note?: string) =>
+    request<Bookmark>("/api/bookmarks", {
+      method: "POST",
+      body: JSON.stringify({ conversation_id: conversationId, message_id: messageId, note }),
+    }),
+
+  removeBookmark: (bookmarkId: string) =>
+    request<void>(`/api/bookmarks/${bookmarkId}`, { method: "DELETE" }),
+
+  generateQuiz: (conversationId: string, numQuestions: number = 5) =>
+    request<{ questions: QuizQuestion[] }>("/api/quiz", {
+      method: "POST",
+      body: JSON.stringify({ conversation_id: conversationId, num_questions: numQuestions }),
+    }),
+
+  generateStudyPlan: (topic: string, days: number = 7, conversationId?: string) =>
+    request<StudyPlan>("/api/study-plan", {
+      method: "POST",
+      body: JSON.stringify({ topic, days, conversation_id: conversationId }),
+    }),
+
+  uploadFile: async (file: File) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}/api/upload`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Upload failed" }));
+      throw new Error(err.detail || "Upload failed");
+    }
+    return res.json() as Promise<{ url: string; filename: string; content_type: string; size: number }>;
+  },
 };

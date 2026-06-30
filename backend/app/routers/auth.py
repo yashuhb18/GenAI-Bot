@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import create_access_token, hash_password, verify_password
+from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User
@@ -116,7 +117,19 @@ async def send_phone_code(body: PhoneRequest):
     phone = _normalize_phone(body.phone)
     code = f"{random.randint(0, 999999):06d}"
     _phone_codes[phone] = (code, time.time() + 300)
-    print(f"[DEV] Verification code for {phone}: {code}")
+
+    if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN:
+        from twilio.rest import Client
+
+        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        client.messages.create(
+            body=f"Your verification code is: {code}",
+            from_=settings.TWILIO_PHONE_NUMBER,
+            to=phone,
+        )
+    else:
+        print(f"[DEV] Verification code for {phone}: {code}")
+
     return {"success": True, "message": "Verification code sent"}
 
 

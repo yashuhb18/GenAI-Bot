@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     CORS_ORIGINS_RAW: str = '["http://localhost:3000"]'
     GROQ_API_KEY: str = ""
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
