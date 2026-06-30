@@ -20,6 +20,7 @@ import {
   Lightbulb,
   Globe,
   LayoutDashboard,
+  Menu,
 } from "lucide-react";
 
 const SUGGESTIONS = [
@@ -34,7 +35,7 @@ export default function ChatPage() {
   const [token, setToken] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -82,6 +83,7 @@ export default function ChatPage() {
       setConversations((prev) => [conv, ...prev]);
       setActiveConvId(conv.id);
       connect(conv.id);
+      setSidebarOpen(false);
     } catch {
       removeToken();
       router.push("/login");
@@ -92,6 +94,7 @@ export default function ChatPage() {
     disconnect();
     setActiveConvId(id);
     connect(id);
+    setSidebarOpen(false);
     try {
       const msgs = await api.getMessages(id);
       loadMessages(msgs);
@@ -133,26 +136,45 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-[var(--bg-primary)]">
-      <ConversationSidebar
-        conversations={conversations}
-        activeId={activeConvId}
-        onSelect={handleSelectConv}
-        onNew={handleNewChat}
-        onDelete={handleDeleteConv}
-        collapsed={sidebarCollapsed}
-      />
+      <div className="hidden md:block">
+        <ConversationSidebar
+          conversations={conversations}
+          activeId={activeConvId}
+          onSelect={handleSelectConv}
+          onNew={handleNewChat}
+          onDelete={handleDeleteConv}
+          collapsed={false}
+        />
+      </div>
+
+      {sidebarOpen && (
+        <ConversationSidebar
+          conversations={conversations}
+          activeId={activeConvId}
+          onSelect={handleSelectConv}
+          onNew={handleNewChat}
+          onDelete={handleDeleteConv}
+          collapsed={false}
+          onClose={() => setSidebarOpen(false)}
+        />
+      )}
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--border)]">
+        <header className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border)]">
           <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-            title={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors md:hidden"
           >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen className="w-5 h-5 text-[var(--text-secondary)]" />
-            ) : (
+            <Menu className="w-5 h-5 text-[var(--text-secondary)]" />
+          </button>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors hidden md:block"
+          >
+            {sidebarOpen ? (
               <PanelLeftClose className="w-5 h-5 text-[var(--text-secondary)]" />
+            ) : (
+              <PanelLeftOpen className="w-5 h-5 text-[var(--text-secondary)]" />
             )}
           </button>
 
@@ -180,13 +202,13 @@ export default function ChatPage() {
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 && !isStreaming ? (
             <div className="flex flex-col items-center justify-center h-full px-4 animate-fade-in">
-              <div className="w-16 h-16 rounded-2xl bg-[var(--accent)] flex items-center justify-center mb-6 shadow-lg">
-                <Sparkles className="w-8 h-8 text-white" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[var(--accent)] flex items-center justify-center mb-4 sm:mb-6 shadow-lg">
+                <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-semibold text-[var(--text-primary)] mb-2">
+              <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text-primary)] mb-2 text-center">
                 How can I help you today?
               </h2>
-              <p className="text-sm text-[var(--text-secondary)] mb-8">
+              <p className="text-sm text-[var(--text-secondary)] mb-6 sm:mb-8 text-center">
                 Ask me anything, or pick a suggestion below.
               </p>
 
@@ -195,7 +217,7 @@ export default function ChatPage() {
                   <button
                     key={i}
                     onClick={() => handleSuggestion(s.prompt)}
-                    className="flex items-start gap-3 p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-strong)] transition-all text-left group"
+                    className="flex items-start gap-3 p-3 sm:p-4 rounded-xl border border-[var(--border)] bg-[var(--bg-primary)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-strong)] transition-all text-left group"
                   >
                     <s.icon className="w-5 h-5 text-[var(--accent)] shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                     <span className="text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
@@ -206,7 +228,7 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto py-4">
+            <div className="max-w-3xl mx-auto py-4 px-2 sm:px-4">
               {messages.map((msg) => (
                 <ChatMessage key={msg.id} role={msg.role} content={msg.content} />
               ))}
@@ -214,9 +236,9 @@ export default function ChatPage() {
                 <ChatMessage role="assistant" content={streamingContent} isStreaming />
               )}
               {isStreaming && !streamingContent && (
-                <div className="flex gap-4 px-4 py-5">
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-white" />
+                <div className="flex gap-3 sm:gap-4 px-3 sm:px-4 py-4 sm:py-5">
+                  <div className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--accent)] flex items-center justify-center">
+                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-semibold text-[var(--text-secondary)]">Assistant</span>
