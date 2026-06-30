@@ -23,15 +23,22 @@ async def list_conversations(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    print(f"[CONV] List for user: {user.id} ({user.username})")
     result = await db.execute(
         select(Conversation)
         .where(Conversation.user_id == user.id)
         .order_by(Conversation.updated_at.desc())
     )
     convs = result.scalars().all()
-    print(f"[CONV] Found {len(convs)} conversations")
-    return convs
+    output = []
+    for c in convs:
+        output.append(ConversationOut(
+            id=c.id,
+            title=c.title,
+            mode=getattr(c, "mode", "general") or "general",
+            created_at=c.created_at,
+            updated_at=c.updated_at,
+        ))
+    return output
 
 
 @router.post("/conversations", response_model=ConversationOut)
@@ -40,7 +47,11 @@ async def create_conversation(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    conv = Conversation(user_id=user.id, title=body.title, mode=body.mode)
+    conv = Conversation(user_id=user.id, title=body.title)
+    try:
+        conv.mode = body.mode
+    except Exception:
+        pass
     db.add(conv)
     await db.commit()
     await db.refresh(conv)
@@ -122,7 +133,16 @@ async def search_conversations(
             .order_by(Conversation.updated_at.desc())
             .limit(20)
         )
-        return result.scalars().all()
+        return [
+            ConversationOut(
+                id=c.id,
+                title=c.title,
+                mode=getattr(c, "mode", "general") or "general",
+                created_at=c.created_at,
+                updated_at=c.updated_at,
+            )
+            for c in result.scalars().all()
+        ]
 
     search_term = f"%{q}%"
     result = await db.execute(
@@ -140,7 +160,16 @@ async def search_conversations(
         .order_by(Conversation.updated_at.desc())
         .limit(20)
     )
-    return result.scalars().all()
+    return [
+        ConversationOut(
+            id=c.id,
+            title=c.title,
+            mode=getattr(c, "mode", "general") or "general",
+            created_at=c.created_at,
+            updated_at=c.updated_at,
+        )
+        for c in result.scalars().all()
+    ]
 
 
 @router.get("/conversations/{conv_id}/export")
@@ -219,7 +248,7 @@ async def get_dashboard(
         recent_with_preview.append({
             "id": conv.id,
             "title": conv.title,
-            "mode": conv.mode,
+            "mode": getattr(conv, "mode", "general") or "general",
             "created_at": conv.created_at,
             "updated_at": conv.updated_at,
             "last_message": last_msg.content if last_msg else None,

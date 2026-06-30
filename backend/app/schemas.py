@@ -27,7 +27,7 @@ class ConversationCreate(BaseModel):
 class ConversationOut(BaseModel):
     id: str
     title: str
-    mode: str
+    mode: str = "general"
     created_at: datetime
     updated_at: datetime
 

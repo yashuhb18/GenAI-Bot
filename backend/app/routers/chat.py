@@ -226,12 +226,16 @@ SYSTEM_PROMPT = MODE_PROMPTS["general"]
 
 
 async def _build_messages(db: AsyncSession, conversation_id: str) -> list[dict]:
-    result = await db.execute(
-        select(Conversation).where(Conversation.id == conversation_id)
-    )
-    conv = result.scalar_one_or_none()
-    mode = conv.mode if conv and conv.mode in MODE_PROMPTS else "general"
-    system_prompt = MODE_PROMPTS[mode]
+    system_prompt = MODE_PROMPTS["general"]
+    try:
+        result = await db.execute(
+            select(Conversation).where(Conversation.id == conversation_id)
+        )
+        conv = result.scalar_one_or_none()
+        if conv and hasattr(conv, "mode") and conv.mode in MODE_PROMPTS:
+            system_prompt = MODE_PROMPTS[conv.mode]
+    except Exception:
+        pass
 
     history = await db.execute(
         select(Message)

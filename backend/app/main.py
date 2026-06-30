@@ -14,6 +14,15 @@ from app.routers import auth, bookmarks, chat, conversations, quiz, share, speec
 async def lifespan(_app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Ensure mode column exists on conversations table
+        try:
+            await conn.execute(
+                __import__("sqlalchemy").text(
+                    "ALTER TABLE conversations ADD COLUMN mode VARCHAR(50) DEFAULT 'general'"
+                )
+            )
+        except Exception:
+            pass  # column already exists
     yield
 
 
