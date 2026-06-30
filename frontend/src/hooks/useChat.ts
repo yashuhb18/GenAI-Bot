@@ -46,8 +46,8 @@ export function useChat(token: string, onStreamEnd?: () => void) {
           setStreamingContent("");
         }
       });
-      ws.connect(conversationId);
       wsRef.current = ws;
+      return ws.connect(conversationId);
     },
     [token]
   );

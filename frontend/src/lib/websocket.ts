@@ -13,23 +13,27 @@ export class ChatWebSocket {
     this.onChunk = onChunk;
   }
 
-  connect(conversationId: string) {
+  connect(conversationId: string): Promise<void> {
     this.disconnect();
-    const url = `${WS_BASE}/api/ws/chat/${conversationId}?token=${this.token}`;
-    this.ws = new WebSocket(url);
-    this.ws.onopen = () => {
-      console.log("[WS] Connected to", url.substring(0, 60));
-    };
-    this.ws.onmessage = (event) => {
-      this.onChunk(JSON.parse(event.data));
-    };
-    this.ws.onerror = (e) => {
-      console.error("[WS] Error:", e);
-      this.onChunk({ type: "error", content: "Connection error" });
-    };
-    this.ws.onclose = (e) => {
-      console.log("[WS] Closed:", e.code, e.reason);
-    };
+    return new Promise((resolve) => {
+      const url = `${WS_BASE}/api/ws/chat/${conversationId}?token=${this.token}`;
+      this.ws = new WebSocket(url);
+      this.ws.onopen = () => {
+        console.log("[WS] Connected to", url.substring(0, 60));
+        resolve();
+      };
+      this.ws.onmessage = (event) => {
+        this.onChunk(JSON.parse(event.data));
+      };
+      this.ws.onerror = (e) => {
+        console.error("[WS] Error:", e);
+        this.onChunk({ type: "error", content: "Connection error" });
+        resolve();
+      };
+      this.ws.onclose = (e) => {
+        console.log("[WS] Closed:", e.code, e.reason);
+      };
+    });
   }
 
   send(content: string) {

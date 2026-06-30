@@ -122,11 +122,18 @@ export default function ChatPage() {
     router.push("/login");
   };
 
-  const handleSuggestion = (prompt: string) => {
+  const handleSuggestion = async (prompt: string) => {
     if (!activeConvId) {
-      handleNewChat().then(() => {
-        setTimeout(() => sendMessage(prompt), 500);
-      });
+      try {
+        const conv = await api.createConversation();
+        setConversations((prev) => [conv, ...prev]);
+        setActiveConvId(conv.id);
+        await connect(conv.id);
+        sendMessage(prompt);
+      } catch {
+        removeToken();
+        router.push("/login");
+      }
     } else {
       sendMessage(prompt);
     }
@@ -138,8 +145,8 @@ export default function ChatPage() {
         const conv = await api.createConversation();
         setConversations((prev) => [conv, ...prev]);
         setActiveConvId(conv.id);
-        connect(conv.id);
-        setTimeout(() => sendMessage(content), 300);
+        await connect(conv.id);
+        sendMessage(content);
       } catch {
         removeToken();
         router.push("/login");
