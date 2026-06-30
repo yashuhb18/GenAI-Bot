@@ -112,8 +112,7 @@ export default function ChatPage() {
       connect(conv.id);
       setSidebarOpen(false);
     } catch {
-      removeToken();
-      router.push("/login");
+      // ignore
     }
   };
 
@@ -177,14 +176,13 @@ export default function ChatPage() {
         const conv = await api.createConversation(undefined, currentMode);
         setConversations((prev) => [conv, ...prev]);
         setActiveConvId(conv.id);
-        await connect(conv.id);
-        sendMessage(prompt);
+        connect(conv.id);
+        setTimeout(() => sendMessage(prompt, conv.id), 100);
       } catch {
-        removeToken();
-        router.push("/login");
+        // ignore
       }
     } else {
-      sendMessage(prompt);
+      sendMessage(prompt, activeConvId);
     }
   };
 
@@ -232,14 +230,13 @@ export default function ChatPage() {
         const conv = await api.createConversation(undefined, currentMode);
         setConversations((prev) => [conv, ...prev]);
         setActiveConvId(conv.id);
-        await connect(conv.id);
-        sendMessage(message);
+        connect(conv.id);
+        setTimeout(() => sendMessage(message, conv.id), 100);
       } catch {
-        removeToken();
-        router.push("/login");
+        // ignore
       }
     } else {
-      sendMessage(message);
+      sendMessage(message, activeConvId);
     }
   };
 
