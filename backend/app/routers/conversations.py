@@ -23,12 +23,15 @@ async def list_conversations(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    print(f"[CONV] List for user: {user.id} ({user.username})")
     result = await db.execute(
         select(Conversation)
         .where(Conversation.user_id == user.id)
         .order_by(Conversation.updated_at.desc())
     )
-    return result.scalars().all()
+    convs = result.scalars().all()
+    print(f"[CONV] Found {len(convs)} conversations")
+    return convs
 
 
 @router.post("/conversations", response_model=ConversationOut)

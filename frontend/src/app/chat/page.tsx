@@ -50,15 +50,23 @@ export default function ChatPage() {
 
   useEffect(() => {
     const t = getToken();
+    console.log("[CHAT] Token check:", !!t, "length:", t?.length);
     if (!t) {
+      console.log("[CHAT] No token, redirecting to login");
       router.push("/login");
       return;
     }
     setToken(t);
+    console.log("[CHAT] Fetching conversations...");
     api
       .getConversations()
-      .then(setConversations)
-      .catch(() => {});
+      .then((convs) => {
+        console.log("[CHAT] Got conversations:", convs.length);
+        setConversations(convs);
+      })
+      .catch((err) => {
+        console.error("[CHAT] getConversations failed:", err.message);
+      });
     api.getBookmarks().then(setBookmarks).catch(() => {});
   }, [router]);
 

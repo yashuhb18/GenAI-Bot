@@ -70,7 +70,10 @@ export function AuthForm({ mode }: Props) {
 
   const onSuccess = useCallback(
     (token: string) => {
+      console.log("[AUTH] Storing token, length:", token.length);
       setToken(token);
+      const stored = localStorage.getItem("token");
+      console.log("[AUTH] Token stored:", !!stored, "length:", stored?.length);
       router.push("/chat");
     },
     [router],
