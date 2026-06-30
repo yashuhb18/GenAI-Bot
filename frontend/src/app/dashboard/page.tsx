@@ -78,10 +78,7 @@ export default function DashboardPage() {
         setDashboard(dashData as unknown as DashboardData);
         setConversations(convs);
       })
-      .catch(() => {
-        removeToken();
-        router.push("/login");
-      })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [router]);
 

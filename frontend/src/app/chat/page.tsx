@@ -58,10 +58,7 @@ export default function ChatPage() {
     api
       .getConversations()
       .then(setConversations)
-      .catch(() => {
-        removeToken();
-        router.push("/login");
-      });
+      .catch(() => {});
     api.getBookmarks().then(setBookmarks).catch(() => {});
   }, [router]);
 
